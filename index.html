@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>BC Cohort Uploader</title>
+<style>
+:root{
+  --bg:#f4f6f8;--card:#fff;--ink:#16202b;--muted:#5d6b78;--line:#dbe2e8;
+  --navy:#1f3a5f;--teal:#2e7d7a;--teal-soft:#e4f1f0;--rose:#b0466e;--rose-soft:#f8e8ee;
+  --amber:#8a6100;--amber-soft:#fff4d6;--ok:#2e7d4f;--ok-soft:#e3f3e8;--err:#b3261e;--err-soft:#fbe9e7;
+  --r:12px;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(20,40,60,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f151b;--card:#18212a;--ink:#e6edf3;--muted:#9aa8b5;--line:#2b3742;
+  --navy:#9fc0e8;--teal:#5cc0b9;--teal-soft:#16302f;--rose:#e58aae;--rose-soft:#3a1f2a;
+  --amber:#f0c060;--amber-soft:#3a2f12;--ok:#6fd096;--ok-soft:#173022;--err:#ff8a80;--err-soft:#3a1b19;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header.top{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+@media (prefers-color-scheme:dark){header.top{background:#132538}}
+.brand{font-weight:700;letter-spacing:.2px;flex:1}
+.brand small{display:block;font-weight:400;opacity:.8;font-size:12px}
+.pill{font-size:12px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.15);white-space:nowrap}
+.pill.off{background:#b3261e}
+main{max-width:720px;margin:0 auto;padding:16px 16px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin:0 0 16px}
+.card h2{margin:0 0 4px;font-size:17px;color:var(--teal);display:flex;align-items:center;gap:8px}
+.step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:13px;font-weight:700}
+@media (prefers-color-scheme:dark){.step{color:#0f151b}}
+.sub{color:var(--muted);font-size:14px;margin:0 0 12px}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+input[type=text],input[type=password],input[type=date],select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:46px}
+textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+input.bad{border-color:var(--err)} input.good{border-color:var(--ok)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.row{grid-template-columns:1fr}}
+.hint{font-size:12.5px;color:var(--muted);margin-top:4px}
+.check{display:flex;align-items:center;gap:8px;font-weight:500;font-size:14px;margin-top:8px}
+.check input{width:20px;height:20px}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 16px;min-height:46px;cursor:pointer;background:var(--teal);color:#fff}
+@media (prefers-color-scheme:dark){button{color:#0f151b}}
+button.ghost{background:transparent;color:var(--teal);border:1.5px solid var(--line)}
+button.danger{background:transparent;color:var(--err);border:1.5px solid var(--err)}
+button.big{width:100%;font-size:17px;padding:15px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btns>*{flex:1 1 auto}
+.box{border-radius:10px;padding:10px 12px;font-size:14px;margin:12px 0}
+.box.warn{background:var(--amber-soft);color:var(--amber)}
+.box.info{background:var(--teal-soft);color:var(--teal)}
+.box.err{background:var(--err-soft);color:var(--err)}
+.box.ok{background:var(--ok-soft);color:var(--ok)}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:20px;text-align:center;color:var(--muted);transition:.15s}
+.drop.over{border-color:var(--teal);background:var(--teal-soft)}
+.drop .btns{justify-content:center}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-top:12px}
+.thumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);aspect-ratio:3/4;display:flex;flex-direction:column}
+.thumb img{width:100%;flex:1;object-fit:cover;min-height:0}
+.thumb .doc{flex:1;display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--rose)}
+.thumb .cap{font-size:11px;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--card)}
+.thumb .x{position:absolute;top:4px;right:4px;width:28px;height:28px;min-height:0;padding:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:28px}
+.thumb .pg{position:absolute;top:4px;left:4px;font-size:11px;font-weight:700;background:var(--navy);color:#fff;border-radius:6px;padding:2px 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:12px;font-weight:600;padding:4px 8px;border-radius:99px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.chip.have{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.list li:last-child{border-bottom:0}
+.list .nm{flex:1;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;word-break:break-all}
+.st{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.st.pending{background:var(--amber-soft);color:var(--amber)} .st.uploading{background:var(--teal-soft);color:var(--teal)}
+.st.done{background:var(--ok-soft);color:var(--ok)} .st.error{background:var(--err-soft);color:var(--err)}
+.preview{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--bg);padding:8px 10px;border-radius:8px;word-break:break-all}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;font-size:14px;transition:.25s;max-width:calc(100% - 32px);z-index:20}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+details summary{cursor:pointer;font-weight:600;color:var(--teal)}
+ol.how{padding-left:20px;font-size:14px} ol.how li{margin:4px 0}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">BC Cohort Uploader<small id="who">Breast cancer surgical cohort · secure report upload</small></div>
+  <span id="net" class="pill">Online</span>
+  <button id="lockBtn" class="ghost" style="color:#fff;border-color:rgba(255,255,255,.35);min-height:34px;padding:6px 10px" hidden>Lock</button>
+</header>
+
+<main>
+<!-- ============ FIRST RUN ============ -->
+<section id="v-setup" hidden>
+  <div class="card">
+    <h2>Set up this device</h2>
+    <p class="sub">This is a one-time setup on each phone or computer.</p>
+    <div class="btns" style="flex-direction:column">
+      <button class="big" id="goAssist">I am a research assistant — I have a setup code</button>
+      <button class="big ghost" id="goPI">I am the Principal Investigator — connect Dropbox</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PI SETUP ============ -->
+<section id="v-pi" hidden>
+  <div class="card">
+    <h2><span class="step">1</span>Dropbox app key</h2>
+    <p class="sub">Paste the <b>App key</b> of the Dropbox app you created (App console → your app → Settings).</p>
+    <label for="appKey">App key</label>
+    <input type="text" id="appKey" autocomplete="off" spellcheck="false" placeholder="e.g. a1b2c3d4e5f6g7h">
+    <label for="baseFolder">Study folder inside Dropbox</label>
+    <input type="text" id="baseFolder" value="/BC_Cohort" spellcheck="false">
+    <div class="hint">Patient folders are created inside this folder, e.g. /BC_Cohort/BC-0123/</div>
+    <div class="btns"><button id="piAuth">Open Dropbox and allow access</button></div>
+  </div>
+  <div class="card" id="piStep2" hidden>
+    <h2><span class="step">2</span>Paste the access code</h2>
+    <p class="sub">After you tap <b>Allow</b>, Dropbox shows a code. Copy it and paste it here.</p>
+    <input type="text" id="authCode" autocomplete="off" spellcheck="false" placeholder="Access code from Dropbox">
+    <div class="btns"><button id="piExchange">Connect</button></div>
+    <div id="piMsg"></div>
+  </div>
+  <div class="card" id="piStep3" hidden>
+    <h2><span class="step">3</span>Create a team passcode</h2>
+    <p class="sub">Assistants type this passcode to unlock the app. Give it to them in person or by phone, <b>never in the same message as the setup code</b>.</p>
+    <div class="row">
+      <div><label for="pass1">Passcode (min. 8 characters)</label><input type="password" id="pass1" autocomplete="new-password"></div>
+      <div><label for="pass2">Repeat passcode</label><input type="password" id="pass2" autocomplete="new-password"></div>
+    </div>
+    <div class="btns"><button id="piFinish">Create setup code</button></div>
+  </div>
+  <div class="card" id="piStep4" hidden>
+    <h2><span class="step">4</span>Setup code for assistants</h2>
+    <p class="sub">Send this code to each assistant (WhatsApp or email is fine — it cannot be used without the passcode). This device is now set up as well.</p>
+    <textarea id="setupOut" readonly></textarea>
+    <div class="btns"><button id="copySetup">Copy setup code</button><button class="ghost" id="piDone">Continue to uploader</button></div>
+  </div>
+  <div class="btns"><button class="ghost" data-back>← Back</button></div>
+</section>
+
+<!-- ============ ASSISTANT SETUP ============ -->
+<section id="v-assist" hidden>
+  <div class="card">
+    <h2>Enter setup code</h2>
+    <p class="sub">Paste the setup code you received from Dr. Anuruddha.</p>
+    <textarea id="setupIn" spellcheck="false" placeholder="BCUP1.…"></textarea>
+    <div class="btns"><button id="saveSetup">Save</button><button class="ghost" data-back>← Back</button></div>
+    <div id="assistMsg"></div>
+  </div>
+</section>
+
+<!-- ============ UNLOCK ============ -->
+<section id="v-unlock" hidden>
+  <div class="card">
+    <h2>Unlock</h2>
+    <p class="sub">The app locks itself after 15 minutes without use.</p>
+    <label for="rid">Your researcher ID</label>
+    <input type="text" id="rid" autocomplete="off" spellcheck="false" placeholder="e.g. RA01" maxlength="12">
+    <label for="pass">Team passcode</label>
+    <input type="password" id="pass" autocomplete="current-password">
+    <div class="btns"><button class="big" id="unlockBtn">Unlock</button></div>
+    <div id="unlockMsg"></div>
+    <details style="margin-top:14px"><summary>Device settings</summary>
+      <div class="btns"><button class="danger" id="resetDev">Remove setup from this device</button></div>
+      <div class="hint">Use this if the phone is being returned or the setup code has changed.</div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ MAIN ============ -->
+<section id="v-main" hidden>
+  <div class="card">
+    <h2><span class="step">1</span>Patient</h2>
+    <p class="sub">Use the <b>Study ID only</b>. Never type the patient's name or NIC.</p>
+    <div class="row">
+      <div><label for="sid">Study ID</label><input type="text" id="sid" autocomplete="off" spellcheck="false" placeholder="BC-0123" maxlength="7" inputmode="text"></div>
+      <div><label for="sid2">Type Study ID again</label><input type="text" id="sid2" autocomplete="off" spellcheck="false" placeholder="BC-0123" maxlength="7"></div>
+    </div>
+    <div id="sidMsg" class="hint"></div>
+    <div id="have" hidden>
+      <div class="hint" style="margin-top:10px">Already in this patient's folder:</div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span>Document</h2>
+    <label for="code">Document type</label>
+    <select id="code"></select>
+    <label for="rdate">Date on the report</label>
+    <input type="date" id="rdate">
+    <label class="check"><input type="checkbox" id="nodate"> No date on the report</label>
+    <label class="check"><input type="checkbox" id="compress" checked> Make photos smaller before upload (recommended on mobile data)</label>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">3</span>Pages</h2>
+    <p class="sub">One document at a time. Add pages in order. Photos (JPG/PNG), PDF or Word (.docx).</p>
+    <div class="drop" id="drop">
+      <div>Drag files here, or</div>
+      <div class="btns">
+        <button id="camBtn">📷 Take photo</button>
+        <button class="ghost" id="pickBtn">Choose files</button>
+      </div>
+      <input type="file" id="camIn" accept="image/*" capture="environment" class="vh">
+      <input type="file" id="pickIn" accept="image/jpeg,image/png,image/heic,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple class="vh">
+    </div>
+    <div class="thumbs" id="thumbs"></div>
+    <div id="namePrev" hidden><div class="hint" style="margin-top:12px">Files will be saved as (page numbers continue if this report already has pages):</div><div class="preview" id="namePrevTxt"></div></div>
+    <div class="box warn">Photograph the whole page, flat and in good light. Check that the text can be read before uploading.</div>
+    <button class="big" id="uploadBtn" disabled>Upload</button>
+  </div>
+
+  <div class="card">
+    <h2>Upload queue</h2>
+    <p class="sub" id="qSummary">Nothing waiting.</p>
+    <ul class="list" id="qList"></ul>
+    <div class="btns" id="qBtns" hidden><button class="ghost" id="retryBtn">Retry failed</button><button class="danger" id="clearQ">Discard waiting files</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Uploaded from this device</h2>
+    <ul class="list" id="hList"></ul>
+    <div class="btns"><button class="ghost" id="exportLog">Download log (CSV)</button></div>
+  </div>
+
+  <details class="card"><summary>Settings &amp; help</summary>
+    <p class="sub" style="margin-top:10px">Study folder: <b id="baseShow"></b></p>
+    <div class="btns"><button class="ghost" id="showSetup">Copy setup code (for a new assistant)</button></div>
+    <ol class="how">
+      <li>Enter the Study ID twice, choose the document type and date.</li>
+      <li>Photograph every page in order, or choose a PDF.</li>
+      <li>Tap <b>Upload</b>. If there is no signal, the files wait on this phone and upload automatically when you are back online. Keep the app open.</li>
+      <li>Hand the original reports back to the patient.</li>
+    </ol>
+  </details>
+  <div class="foot">Photos are re-saved on this device before upload, which removes hidden location data (GPS).<br>Uploaded files are deleted from this device.</div>
+</section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ---------------- constants ---------------- */
+const DOCS = [
+  ['DX','Diagnosis card / discharge summary'],['CB','Clinic book / follow-up notes'],
+  ['MG','Mammogram report'],['MGI','Mammogram images'],['US','Breast / axillary ultrasound report'],
+  ['ST','Staging CT / bone scan / CXR report'],['BX','FNAC / core biopsy report'],['HP','Final histopathology report'],
+  ['IHC','ER / PR / HER2 / Ki-67 report'],['ISH','FISH / ISH report'],['OP','Operation notes'],
+  ['CT','Chemotherapy chart / card'],['RT','Radiotherapy summary'],['HT','Endocrine / anti-HER2 prescription'],
+  ['REC','Recurrence imaging / biopsy'],['DC','Death certificate'],['CONS','Signed consent form'],
+  ['QOL','Paper questionnaire'],['OTH','Other']
+];
+const SID_RE = /^BC-\d{4}$/;
+const CFG_KEY = 'bcup.cfg', RID_KEY = 'bcup.rid', HIST_KEY = 'bcup.hist';
+const LOCK_MS = 15 * 60 * 1000, MAX_BYTES = 140 * 1024 * 1024, MAX_PX = 2400;
+
+/* ---------------- tiny helpers ---------------- */
+const $ = s => document.querySelector(s);
+const LS = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+function show(id){ document.querySelectorAll('main>section').forEach(s => s.hidden = s.id !== id); $('#lockBtn').hidden = id !== 'v-main'; window.scrollTo(0,0); }
+let toastT; function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3200); }
+function msg(el, kind, text){ el.innerHTML = text ? `<div class="box ${kind}">${esc(text)}</div>` : ''; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const enc = new TextEncoder(), dec = new TextDecoder();
+function b64(buf){ let s=''; const a=new Uint8Array(buf); for(let i=0;i<a.length;i++) s+=String.fromCharCode(a[i]); return btoa(s); }
+function unb64(s){ const b=atob(s), a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; }
+const b64url = buf => b64(buf).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+async function sha256hex(blob){ const h = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()); return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function normBase(b){ b=(b||'').trim().replace(/\\/g,'/').replace(/\/+$/,''); if(b && b[0]!=='/') b='/'+b; return b; }
+
+/* ---------------- crypto (passcode-protected refresh token) ---------------- */
+async function deriveKey(pass, salt){
+  const base = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:310000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function seal(secret, pass){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, await deriveKey(pass, salt), enc.encode(secret));
+  return {salt:b64(salt), iv:b64(iv), ct:b64(ct)};
+}
+async function unseal(box, pass){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(box.iv)}, await deriveKey(pass, unb64(box.salt)), unb64(box.ct));
+  return dec.decode(pt);
+}
+const toSetupCode = cfg => 'BCUP1.' + b64(enc.encode(JSON.stringify(cfg)));
+function fromSetupCode(s){
+  s = (s||'').replace(/\s+/g,'');
+  if(!s.startsWith('BCUP1.')) throw new Error('This is not a valid setup code.');
+  const c = JSON.parse(dec.decode(unb64(s.slice(6))));
+  if(!c.appKey || !c.enc || !c.enc.ct) throw new Error('Setup code is incomplete.');
+  return c;
+}
+
+/* ---------------- Dropbox API ---------------- */
+const DBX = { appKey:null, refresh:null, token:null, exp:0, base:'' };
+async function getToken(force){
+  if(!DBX.refresh) throw Object.assign(new Error('App is locked'), {locked:true});
+  if(!force && DBX.token && Date.now() < DBX.exp - 60000) return DBX.token;
+  const r = await fetch('https://api.dropboxapi.com/oauth2/token', {method:'POST',
+    body:new URLSearchParams({grant_type:'refresh_token', refresh_token:DBX.refresh, client_id:DBX.appKey})});
+  if(!r.ok){ const t = await r.text(); throw Object.assign(new Error('Dropbox refused the sign-in ('+r.status+'). The PI may need to reconnect Dropbox. '+t.slice(0,120)), {auth:true}); }
+  const j = await r.json(); DBX.token = j.access_token; DBX.exp = Date.now() + (j.expires_in||14400)*1000;
+  return DBX.token;
+}
+async function parseRes(r){ const txt = await r.text(); let j; try { j = JSON.parse(txt); } catch(e){ j = {error_summary: txt}; }
+  if(!r.ok){ throw Object.assign(new Error(j.error_summary || ('HTTP '+r.status)), {status:r.status, body:j}); } return j; }
+async function rpc(endpoint, args, retried){
+  const tk = await getToken();
+  const r = await fetch('https://api.dropboxapi.com/2/'+endpoint, {method:'POST',
+    headers:{Authorization:'Bearer '+tk, 'Content-Type':'application/json'}, body:JSON.stringify(args)});
+  if(r.status === 401 && !retried){ DBX.token = null; return rpc(endpoint, args, true); }
+  return parseRes(r);
+}
+async function upload(path, blob, retried){
+  const tk = await getToken();
+  const r = await fetch('https://content.dropboxapi.com/2/files/upload', {method:'POST',
+    headers:{Authorization:'Bearer '+tk, 'Content-Type':'application/octet-stream',
+      'Dropbox-API-Arg':JSON.stringify({path, mode:'add', autorename:true, mute:true})}, body:blob});
+  if(r.status === 401 && !retried){ DBX.token = null; return upload(path, blob, true); }
+  return parseRes(r);
+}
+async function listNames(path){
+  try {
+    let j = await rpc('files/list_folder', {path, limit:2000}); let e = j.entries;
+    while(j.has_more){ j = await rpc('files/list_folder/continue', {cursor:j.cursor}); e = e.concat(j.entries); }
+    return e.filter(x => x['.tag']==='file').map(x => x.name);
+  } catch(err){ if(err.body && JSON.stringify(err.body).includes('not_found')) return []; throw err; }
+}
+
+/* ---------------- queue storage (IndexedDB, memory fallback) ---------------- */
+const Q = {
+  db:null, mem:new Map(),
+  async open(){ try { this.db = await new Promise((res,rej)=>{ const r = indexedDB.open('bcup',1);
+      r.onupgradeneeded = () => r.result.createObjectStore('q',{keyPath:'id'}); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+    catch(e){ this.db = null; } },
+  _req(mode, fn){ return new Promise((res,rej)=>{ const st = this.db.transaction('q',mode).objectStore('q'); const r = fn(st); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  async all(){ const a = this.db ? await this._req('readonly', s=>s.getAll()) : [...this.mem.values()]; return a.sort((x,y)=>x.seq-y.seq); },
+  async put(o){ if(this.db) return this._req('readwrite', s=>s.put(o)); this.mem.set(o.id,o); },
+  async del(id){ if(this.db) return this._req('readwrite', s=>s.delete(id)); this.mem.delete(id); }
+};
+
+/* ---------------- image handling ---------------- */
+async function shrinkImage(file){
+  let bmp;
+  try { bmp = await createImageBitmap(file, {imageOrientation:'from-image'}); }
+  catch(e){ const url = URL.createObjectURL(file); bmp = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; }); }
+  const w = bmp.width, h = bmp.height, s = Math.min(1, MAX_PX / Math.max(w,h));
+  const c = document.createElement('canvas'); c.width = Math.round(w*s); c.height = Math.round(h*s);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(b => res(b), 'image/jpeg', 0.85));
+}
+function kindOf(f){
+  const n = (f.name||'').toLowerCase();
+  if(f.type === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
+  if(n.endsWith('.docx') || f.type.includes('wordprocessingml')) return 'docx';
+  if(f.type.startsWith('image/') || /\.(jpe?g|png|heic|heif)$/.test(n)) return 'image';
+  return null;
+}
+
+/* ---------------- state ---------------- */
+let cfg = LS.get(CFG_KEY), rid = '', picked = [], running = false, lockTimer = null, haveNames = [], seq = Date.now();
+let pi = {};
+
+/* ---------------- first run / PI flow ---------------- */
+$('#goAssist').onclick = () => show('v-assist');
+$('#goPI').onclick = () => show('v-pi');
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show('v-setup'));
+
+$('#piAuth').onclick = async () => {
+  const key = $('#appKey').value.trim();
+  if(!/^[a-z0-9]{8,32}$/i.test(key)) return toast('Please paste a valid App key.');
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', enc.encode(verifier)));
+  pi = {appKey:key, verifier, base:normBase($('#baseFolder').value)};
+  const url = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({client_id:key, response_type:'code',
+    code_challenge:challenge, code_challenge_method:'S256', token_access_type:'offline'});
+  window.open(url, '_blank', 'noopener');
+  $('#piStep2').hidden = false; $('#authCode').focus();
+};
+$('#piExchange').onclick = async () => {
+  const code = $('#authCode').value.trim(); if(!code) return toast('Paste the code from Dropbox.');
+  msg($('#piMsg'), 'info', 'Connecting…');
+  try {
+    const r = await fetch('https://api.dropboxapi.com/oauth2/token', {method:'POST', body:new URLSearchParams({
+      grant_type:'authorization_code', code, code_verifier:pi.verifier, client_id:pi.appKey})});
+    const j = await r.json();
+    if(!r.ok || !j.refresh_token) throw new Error(j.error_description || j.error || ('HTTP '+r.status));
+    pi.refresh = j.refresh_token;
+    Object.assign(DBX, {appKey:pi.appKey, refresh:pi.refresh, token:j.access_token, exp:Date.now()+(j.expires_in||14400)*1000, base:pi.base});
+    await listNames(pi.base || ''); // checks the permissions work
+    msg($('#piMsg'), 'ok', 'Dropbox connected.'); $('#piStep3').hidden = false; $('#pass1').focus();
+  } catch(e){ msg($('#piMsg'), 'err', 'Could not connect: ' + e.message + ' — the code can be used only once; tap "Open Dropbox" again for a new one.'); }
+};
+$('#piFinish').onclick = async () => {
+  const a = $('#pass1').value, b = $('#pass2').value;
+  if(a.length < 8) return toast('Passcode must be at least 8 characters.');
+  if(a !== b) return toast('The two passcodes do not match.');
+  $('#piFinish').disabled = true;
+  cfg = {v:1, appKey:pi.appKey, base:pi.base, enc:await seal(pi.refresh, a), created:new Date().toISOString()};
+  LS.set(CFG_KEY, cfg);
+  $('#setupOut').value = toSetupCode(cfg); $('#piStep4').hidden = false; $('#piFinish').disabled = false;
+  $('#pass1').value = $('#pass2').value = ''; pi.refresh = null;
+};
+$('#copySetup').onclick = () => copy($('#setupOut').value);
+$('#piDone').onclick = () => { DBX.refresh = null; DBX.token = null; show('v-unlock'); };
+async function copy(t){ try { await navigator.clipboard.writeText(t); toast('Copied.'); } catch(e){ toast('Select the text and copy it manually.'); } }
+
+/* ---------------- assistant setup ---------------- */
+$('#saveSetup').onclick = () => {
+  try { cfg = fromSetupCode($('#setupIn').value); LS.set(CFG_KEY, cfg); $('#setupIn').value=''; toast('Saved. Now unlock with the team passcode.'); show('v-unlock'); }
+  catch(e){ msg($('#assistMsg'), 'err', e.message); }
+};
+
+/* ---------------- unlock / lock ---------------- */
+$('#rid').value = LS.get(RID_KEY) || '';
+$('#unlockBtn').onclick = unlock;
+$('#pass').addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
+async function unlock(){
+  const r = $('#rid').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  if(!r) return msg($('#unlockMsg'), 'err', 'Enter your researcher ID.');
+  $('#unlockBtn').disabled = true; msg($('#unlockMsg'), 'info', 'Unlocking…');
+  try { DBX.refresh = await unseal(cfg.enc, $('#pass').value); }
+  catch(e){ $('#unlockBtn').disabled = false; return msg($('#unlockMsg'), 'err', 'Wrong passcode.'); }
+  Object.assign(DBX, {appKey:cfg.appKey, base:normBase(cfg.base), token:null, exp:0});
+  rid = r; LS.set(RID_KEY, r); $('#pass').value = ''; $('#unlockBtn').disabled = false; msg($('#unlockMsg'));
+  if(navigator.onLine){ try { await getToken(); } catch(e){ toast(e.message); } }
+  $('#who').textContent = 'Signed in as ' + rid; $('#baseShow').textContent = DBX.base || '/ (app folder)';
+  show('v-main'); poke(); renderQ(); renderHist(); processQueue();
+}
+function lock(){ DBX.refresh = null; DBX.token = null; rid=''; $('#who').textContent='Locked'; show('v-unlock'); }
+$('#lockBtn').onclick = lock;
+function poke(){ clearTimeout(lockTimer); if(DBX.refresh) lockTimer = setTimeout(() => { if(!running) lock(); else poke(); }, LOCK_MS); }
+['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, poke, {passive:true}));
+let resetArm = 0;
+$('#resetDev').onclick = async () => {
+  if(Date.now() - resetArm > 4000){ resetArm = Date.now(); return toast('Tap again to confirm removal.'); }
+  const q = await Q.all(); for(const it of q) await Q.del(it.id);
+  LS.del(CFG_KEY); LS.del(HIST_KEY); cfg = null; DBX.refresh = null; toast('Setup removed from this device.'); show('v-setup');
+};
+$('#showSetup').onclick = () => copy(toSetupCode(cfg));
+
+/* ---------------- patient / document form ---------------- */
+$('#code').innerHTML = '<option value="">— choose —</option>' + DOCS.map(([c,n]) => `<option value="${c}">${c} — ${esc(n)}</option>`).join('');
+function fmtSid(v){ v = v.toUpperCase().replace(/[^0-9]/g,'').slice(0,4); return v ? 'BC-' + v : ''; }
+['#sid','#sid2'].forEach(s => $(s).addEventListener('input', e => { const pos = e.target.value; e.target.value = fmtSid(pos); checkSid(); }));
+let sidChecked = '';
+function sidOK(){ const a=$('#sid').value, b=$('#sid2').value; return SID_RE.test(a) && a===b; }
+async function checkSid(){
+  const a=$('#sid').value, b=$('#sid2').value, m=$('#sidMsg');
+  $('#sid').className = SID_RE.test(a) ? 'good' : (a.length ? 'bad' : '');
+  $('#sid2').className = b.length ? (a===b && SID_RE.test(b) ? 'good' : 'bad') : '';
+  if(b.length===7 && a!==b){ m.innerHTML = '<span style="color:var(--err)">The two Study IDs do not match.</span>'; }
+  else if(sidOK()){ m.textContent = '✓ Study ID confirmed'; if(sidChecked!==a){ sidChecked=a; refreshHave(); } }
+  else { m.textContent=''; $('#have').hidden = true; sidChecked=''; }
+  updateUI();
+}
+async function refreshHave(){
+  const sid = $('#sid').value; if(!sidOK() || !navigator.onLine || !DBX.refresh) return;
+  try { haveNames = await listNames(DBX.base + '/' + sid); } catch(e){ haveNames = []; return; }
+  if($('#sid').value !== sid) return;
+  $('#chips').innerHTML = DOCS.filter(d=>d[0]!=='OTH').map(([c]) => { const n = haveNames.filter(x => x.startsWith(sid+'_'+c+'_')).length;
+    return `<span class="chip ${n?'have':''}">${c}${n?' ✓'+n:''}</span>`; }).join('');
+  $('#have').hidden = false;
+}
+$('#code').onchange = updateUI; $('#rdate').oninput = updateUI;
+$('#nodate').onchange = () => { $('#rdate').disabled = $('#nodate').checked; updateUI(); };
+function dateTag(){ return $('#nodate').checked ? 'nodate' : ($('#rdate').value || ''); }
+
+/* ---------------- file picking ---------------- */
+$('#camBtn').onclick = () => $('#camIn').click();
+$('#pickBtn').onclick = () => $('#pickIn').click();
+$('#camIn').onchange = e => { addFiles(e.target.files); e.target.value=''; };
+$('#pickIn').onchange = e => { addFiles(e.target.files); e.target.value=''; };
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+function addFiles(list){
+  for(const f of list){
+    const k = kindOf(f);
+    if(!k){ toast(f.name + ': file type not allowed'); continue; }
+    if(f.size > MAX_BYTES){ toast(f.name + ': file is too large'); continue; }
+    picked.push({file:f, kind:k, url: k==='image' ? URL.createObjectURL(f) : null});
+  }
+  renderThumbs(); updateUI();
+}
+function renderThumbs(){
+  $('#thumbs').innerHTML = picked.map((p,i) => `<div class="thumb"><span class="pg">p${i+1}</span>
+    ${p.url ? `<img src="${p.url}" alt="page ${i+1}">` : `<div class="doc">${p.kind.toUpperCase()}</div>`}
+    <div class="cap">${(p.file.size/1024/1024).toFixed(1)} MB</div><button class="x" data-i="${i}" aria-label="Remove page ${i+1}">×</button></div>`).join('');
+  $('#thumbs').querySelectorAll('.x').forEach(b => b.onclick = () => { const p = picked.splice(+b.dataset.i,1)[0]; if(p.url) URL.revokeObjectURL(p.url); renderThumbs(); updateUI(); });
+}
+function extFor(p, willShrink){ if(p.kind==='pdf') return 'pdf'; if(p.kind==='docx') return 'docx';
+  if(willShrink) return 'jpg'; const n=p.file.name.toLowerCase(); return n.endsWith('.png') ? 'png' : 'jpg'; }
+function updateUI(){
+  const ok = sidOK() && $('#code').value && dateTag() && picked.length;
+  $('#uploadBtn').disabled = !ok;
+  $('#uploadBtn').textContent = picked.length ? `Upload ${picked.length} page${picked.length>1?'s':''}` : 'Upload';
+  if(sidOK() && $('#code').value && dateTag() && picked.length){
+    const pre = `${$('#sid').value}_${$('#code').value}_${dateTag()}`;
+    const shrink = $('#compress').checked;
+    $('#namePrevTxt').textContent = DBX.base + '/' + $('#sid').value + '/' + pre + '_p1.' + extFor(picked[0], shrink && picked[0].kind==='image') + (picked.length>1 ? `  … _p${picked.length}` : '');
+    $('#namePrev').hidden = false;
+  } else $('#namePrev').hidden = true;
+}
+
+/* ---------------- enqueue & upload ---------------- */
+$('#uploadBtn').onclick = async () => {
+  if(!sidOK()) return toast('Check the Study ID.');
+  const sid = $('#sid').value, code = $('#code').value, date = dateTag(), shrink = $('#compress').checked;
+  $('#uploadBtn').disabled = true; $('#uploadBtn').textContent = 'Preparing…';
+  try {
+    for(const p of picked){
+      let blob = p.file, ext;
+      // images are always re-encoded when shrinking: this also strips EXIF/GPS metadata
+      if(p.kind==='image' && (shrink || /heic|heif/i.test(p.file.type))){ blob = await shrinkImage(p.file); ext='jpg'; }
+      else ext = extFor(p, false);
+      await Q.put({id:'q'+(++seq)+Math.random().toString(36).slice(2,6), seq:seq, sid, code, date, ext, blob,
+        bytes:blob.size, rid, created:new Date().toISOString(), status:'pending', tries:0, err:''});
+    }
+  } catch(e){ toast('Could not prepare a file: ' + e.message); }
+  picked.forEach(p => p.url && URL.revokeObjectURL(p.url)); picked = []; renderThumbs();
+  $('#code').value=''; updateUI(); renderQ();
+  toast(navigator.onLine ? 'Uploading…' : 'Saved on this device. Will upload when online.');
+  processQueue();
+};
+
+async function processQueue(){
+  if(running || !DBX.refresh || !navigator.onLine) return;
+  running = true;
+  const listings = {};
+  try {
+    for(const it of await Q.all()){
+      if(it.status !== 'pending') continue;
+      it.status = 'uploading'; await Q.put(it); renderQ();
+      try {
+        const folder = DBX.base + '/' + it.sid;
+        if(!listings[it.sid]) listings[it.sid] = await listNames(folder);
+        const pre = `${it.sid}_${it.code}_${it.date}_p`;
+        let n = 0; for(const nm of listings[it.sid]){ if(nm.startsWith(pre)){ const m = parseInt(nm.slice(pre.length), 10); if(m > n) n = m; } }
+        const name = `${pre}${n+1}.${it.ext}`;
+        const hash = await sha256hex(it.blob);
+        const res = await upload(folder + '/' + name, it.blob);
+        listings[it.sid].push(res.name);
+        const log = {studyId:it.sid, docCode:it.code, reportDate:it.date, file:res.path_display, bytes:it.bytes, sha256:hash,
+          researcherId:it.rid, queuedAt:it.created, uploadedAt:new Date().toISOString(), dropboxRev:res.rev};
+        const stamp = log.uploadedAt.replace(/[:.]/g,'-');
+        try { await upload(`${DBX.base}/_upload_logs/${log.uploadedAt.slice(0,7)}/${stamp}_${it.sid}_${it.code}.json`,
+          new Blob([JSON.stringify(log, null, 2)], {type:'application/json'})); } catch(e){ /* log failure must not block */ }
+        addHist(log); await Q.del(it.id);
+      } catch(e){
+        it.status = 'error'; it.tries++; it.err = e.message.slice(0,140); await Q.put(it);
+        if(e.auth || e.locked) break;
+      }
+      renderQ();
+    }
+  } finally { running = false; renderQ(); renderHist(); refreshHave(); }
+}
+
+/* ---------------- queue & history UI ---------------- */
+async function renderQ(){
+  const q = await Q.all();
+  const nP = q.filter(x=>x.status==='pending'||x.status==='uploading').length, nE = q.filter(x=>x.status==='error').length;
+  $('#qSummary').textContent = q.length ? `${nP} waiting · ${nE} failed${!navigator.onLine ? ' · offline — will upload when back online' : ''}` : 'Nothing waiting.';
+  $('#qList').innerHTML = q.map(x => `<li><span class="nm">${x.sid} · ${x.code} · ${x.date}<br><span class="hint">${(x.bytes/1024).toFixed(0)} KB${x.err ? ' · '+esc(x.err) : ''}</span></span><span class="st ${x.status}">${x.status}</span></li>`).join('');
+  $('#qBtns').hidden = !q.length;
+}
+$('#retryBtn').onclick = async () => { for(const it of await Q.all()) if(it.status==='error'){ it.status='pending'; await Q.put(it); } renderQ(); processQueue(); };
+let clearArm = 0;
+$('#clearQ').onclick = async () => {
+  if(Date.now() - clearArm > 4000){ clearArm = Date.now(); return toast('Tap again to discard all waiting files.'); }
+  for(const it of await Q.all()) await Q.del(it.id); renderQ(); toast('Waiting files discarded.');
+};
+function addHist(l){ const h = LS.get(HIST_KEY) || []; h.unshift(l); LS.set(HIST_KEY, h.slice(0,300)); }
+function renderHist(){
+  const h = LS.get(HIST_KEY) || [];
+  $('#hList').innerHTML = h.length ? h.slice(0,30).map(x => `<li><span class="nm">${esc(x.file.split('/').pop())}<br><span class="hint">${new Date(x.uploadedAt).toLocaleString()} · ${esc(x.researcherId)}</span></span><span class="st done">done</span></li>`).join('')
+    : '<li class="hint">No uploads yet.</li>';
+}
+$('#exportLog').onclick = () => {
+  const h = LS.get(HIST_KEY) || []; if(!h.length) return toast('Nothing to export.');
+  const cols = ['uploadedAt','researcherId','studyId','docCode','reportDate','file','bytes','sha256'];
+  const csv = [cols.join(',')].concat(h.map(r => cols.map(c => `"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `upload_log_${rid||'device'}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+};
+
+/* ---------------- network status ---------------- */
+function net(){ const on = navigator.onLine; $('#net').textContent = on ? 'Online' : 'Offline'; $('#net').classList.toggle('off', !on); renderQ(); if(on) processQueue(); }
+addEventListener('online', net); addEventListener('offline', net);
+addEventListener('beforeunload', e => { if(running){ e.preventDefault(); e.returnValue=''; } });
+
+/* ---------------- boot ---------------- */
+(async () => {
+  if(!window.crypto || !crypto.subtle){ document.querySelector('main').innerHTML = '<div class="card"><div class="box err">This page must be opened over https:// (secure connection). Please use the link provided by the PI.</div></div>'; return; }
+  await Q.open(); net();
+  show(cfg ? 'v-unlock' : 'v-setup');
+})();
+</script>
+</body>
+</html>
