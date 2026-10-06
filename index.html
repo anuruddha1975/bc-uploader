@@ -109,19 +109,16 @@ ol.how{padding-left:20px;font-size:14px} ol.how li{margin:4px 0}
 <section id="v-pi" hidden>
   <div class="card">
     <h2><span class="step">1</span>Dropbox app key</h2>
-    <p class="sub">Paste the <b>App key</b> of the Dropbox app you created (App console → your app → Settings).</p>
+    <p class="sub">Paste the <b>App key</b> of the Dropbox app you created (App console → your app → Settings). You will be taken to Dropbox and brought back here automatically.</p>
     <label for="appKey">App key</label>
     <input type="text" id="appKey" autocomplete="off" spellcheck="false" placeholder="e.g. a1b2c3d4e5f6g7h">
     <label for="baseFolder">Study folder inside Dropbox</label>
     <input type="text" id="baseFolder" value="/BC_Cohort" spellcheck="false">
     <div class="hint">Patient folders are created inside this folder, e.g. /BC_Cohort/BC-0123/</div>
-    <div class="btns"><button id="piAuth">Open Dropbox and allow access</button></div>
+    <div class="btns"><button id="piAuth">Connect Dropbox</button></div>
   </div>
   <div class="card" id="piStep2" hidden>
-    <h2><span class="step">2</span>Paste the access code</h2>
-    <p class="sub">After you tap <b>Allow</b>, Dropbox shows a code. Copy it and paste it here.</p>
-    <input type="text" id="authCode" autocomplete="off" spellcheck="false" placeholder="Access code from Dropbox">
-    <div class="btns"><button id="piExchange">Connect</button></div>
+    <h2><span class="step">2</span>Connecting to Dropbox</h2>
     <div id="piMsg"></div>
   </div>
   <div class="card" id="piStep3" hidden>
@@ -375,31 +372,31 @@ $('#goAssist').onclick = () => show('v-assist');
 $('#goPI').onclick = () => show('v-pi');
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show('v-setup'));
 
+const REDIRECT = location.origin + location.pathname;
 $('#piAuth').onclick = async () => {
   const key = $('#appKey').value.trim();
   if(!/^[a-z0-9]{8,32}$/i.test(key)) return toast('Please paste a valid App key.');
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
   const challenge = b64url(await crypto.subtle.digest('SHA-256', enc.encode(verifier)));
-  pi = {appKey:key, verifier, base:normBase($('#baseFolder').value)};
-  const url = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({client_id:key, response_type:'code',
-    code_challenge:challenge, code_challenge_method:'S256', token_access_type:'offline'});
-  window.open(url, '_blank', 'noopener');
-  $('#piStep2').hidden = false; $('#authCode').focus();
+  try { sessionStorage.setItem('bcup.pkce', JSON.stringify({appKey:key, verifier, base:normBase($('#baseFolder').value)})); } catch(e){}
+  // same-tab redirect: no pop-up to be blocked, no code to copy
+  location.href = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({client_id:key, response_type:'code',
+    code_challenge:challenge, code_challenge_method:'S256', token_access_type:'offline', redirect_uri:REDIRECT});
 };
-$('#piExchange').onclick = async () => {
-  const code = $('#authCode').value.trim(); if(!code) return toast('Paste the code from Dropbox.');
-  msg($('#piMsg'), 'info', 'Connecting…');
+async function piExchange(code){
+  show('v-pi'); $('#piStep2').hidden = false;
+  msg($('#piMsg'), 'info', 'Connecting to Dropbox…');
   try {
     const r = await fetch('https://api.dropboxapi.com/oauth2/token', {method:'POST', body:new URLSearchParams({
-      grant_type:'authorization_code', code, code_verifier:pi.verifier, client_id:pi.appKey})});
+      grant_type:'authorization_code', code, code_verifier:pi.verifier, client_id:pi.appKey, redirect_uri:REDIRECT})});
     const j = await r.json();
     if(!r.ok || !j.refresh_token) throw new Error(j.error_description || j.error || ('HTTP '+r.status));
     pi.refresh = j.refresh_token;
     Object.assign(DBX, {appKey:pi.appKey, refresh:pi.refresh, token:j.access_token, exp:Date.now()+(j.expires_in||14400)*1000, base:pi.base});
     await listNames(pi.base || ''); // checks the permissions work
     msg($('#piMsg'), 'ok', 'Dropbox connected.'); $('#piStep3').hidden = false; $('#pass1').focus();
-  } catch(e){ msg($('#piMsg'), 'err', 'Could not connect: ' + e.message + ' — the code can be used only once; tap "Open Dropbox" again for a new one.'); }
-};
+  } catch(e){ msg($('#piMsg'), 'err', 'Could not connect: ' + e.message + '. Tap "← Back", then try "Connect Dropbox" again.'); }
+}
 $('#piFinish').onclick = async () => {
   const a = $('#pass1').value, b = $('#pass2').value;
   if(a.length < 8) return toast('Passcode must be at least 8 characters.');
@@ -603,6 +600,15 @@ addEventListener('beforeunload', e => { if(running){ e.preventDefault(); e.retur
 (async () => {
   if(!window.crypto || !crypto.subtle){ document.querySelector('main').innerHTML = '<div class="card"><div class="box err">This page must be opened over https:// (secure connection). Please use the link provided by the PI.</div></div>'; return; }
   await Q.open(); net();
+  const qs = new URLSearchParams(location.search);
+  if(qs.has('code') || qs.has('error')){
+    history.replaceState(null, '', location.pathname);   // remove the code from the address bar
+    let saved = null; try { saved = JSON.parse(sessionStorage.getItem('bcup.pkce')); sessionStorage.removeItem('bcup.pkce'); } catch(e){}
+    if(qs.has('error')){ show('v-pi'); $('#piStep2').hidden=false; return msg($('#piMsg'), 'err', 'Dropbox access was not allowed (' + (qs.get('error_description')||qs.get('error')) + ').'); }
+    if(!saved){ show('v-pi'); $('#piStep2').hidden=false; return msg($('#piMsg'), 'err', 'The connection was started in a different browser or tab. Please tap "Connect Dropbox" again in this one.'); }
+    pi = saved; $('#appKey').value = saved.appKey; $('#baseFolder').value = saved.base;
+    return piExchange(qs.get('code'));
+  }
   show(cfg ? 'v-unlock' : 'v-setup');
 })();
 </script>
