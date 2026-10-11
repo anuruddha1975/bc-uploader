@@ -212,6 +212,7 @@ ol.how{padding-left:20px;font-size:14px} ol.how li{margin:4px 0}
     <div id="namePrev" hidden><div class="hint" style="margin-top:12px">Files will be saved as (page numbers continue if this report already has pages):</div><div class="preview" id="namePrevTxt"></div></div>
     <div class="box warn">Photograph the whole page, flat and in good light. Check that the text can be read before uploading.</div>
     <button class="big" id="uploadBtn" disabled>Upload</button>
+    <div id="missing" class="hint" style="text-align:center;margin-top:8px;color:var(--amber);font-weight:600"></div>
   </div>
 
   <div class="card">
@@ -433,7 +434,7 @@ async function unlock(){
   rid = r; LS.set(RID_KEY, r); $('#pass').value = ''; $('#unlockBtn').disabled = false; msg($('#unlockMsg'));
   if(navigator.onLine){ try { await getToken(); } catch(e){ toast(e.message); } }
   $('#who').textContent = 'Signed in as ' + rid; $('#baseShow').textContent = DBX.base || '/ (app folder)';
-  show('v-main'); poke(); renderQ(); renderHist(); processQueue();
+  show('v-main'); updateUI(); poke(); renderQ(); renderHist(); processQueue();
 }
 function lock(){ DBX.refresh = null; DBX.token = null; rid=''; $('#who').textContent='Locked'; show('v-unlock'); }
 $('#lockBtn').onclick = lock;
@@ -474,7 +475,8 @@ async function refreshHave(){
     return `<span class="chip ${n?'have':''}">${c}${n?' ✓'+n:''}</span>`; }).join('');
   $('#have').hidden = false;
 }
-$('#code').onchange = updateUI; $('#rdate').oninput = updateUI;
+$('#code').onchange = updateUI; ['input','change','blur'].forEach(ev => $('#rdate').addEventListener(ev, updateUI));
+$('#compress').onchange = updateUI;
 $('#nodate').onchange = () => { $('#rdate').disabled = $('#nodate').checked; updateUI(); };
 function dateTag(){ return $('#nodate').checked ? 'nodate' : ($('#rdate').value || ''); }
 
@@ -505,8 +507,14 @@ function renderThumbs(){
 function extFor(p, willShrink){ if(p.kind==='pdf') return 'pdf'; if(p.kind==='docx') return 'docx';
   if(willShrink) return 'jpg'; const n=p.file.name.toLowerCase(); return n.endsWith('.png') ? 'png' : 'jpg'; }
 function updateUI(){
-  const ok = sidOK() && $('#code').value && dateTag() && picked.length;
+  const need = [];
+  if(!sidOK()) need.push('Study ID (typed twice)');
+  if(!$('#code').value) need.push('document type');
+  if(!dateTag()) need.push('date (or tick "No date")');
+  if(!picked.length) need.push('a photo or file');
+  const ok = need.length === 0;
   $('#uploadBtn').disabled = !ok;
+  $('#missing').textContent = ok ? '' : 'Still needed: ' + need.join(', ');
   $('#uploadBtn').textContent = picked.length ? `Upload ${picked.length} page${picked.length>1?'s':''}` : 'Upload';
   if(sidOK() && $('#code').value && dateTag() && picked.length){
     const pre = `${$('#sid').value}_${$('#code').value}_${dateTag()}`;
