@@ -35,6 +35,8 @@ main{max-width:720px;margin:0 auto;padding:16px 16px 80px}
 .sub{color:var(--muted);font-size:14px;margin:0 0 12px}
 label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
 input[type=text],input[type=password],input[type=date],select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:46px}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left;line-height:22px}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
 textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
 input.bad{border-color:var(--err)} input.good{border-color:var(--ok)}
@@ -174,10 +176,10 @@ ol.how{padding-left:20px;font-size:14px} ol.how li{margin:4px 0}
     <h2><span class="step">1</span>Patient</h2>
     <p class="sub">Use the <b>Study ID only</b>. Never type the patient's name or NIC.</p>
     <div class="row">
-      <div><label for="sid">Study ID</label><input type="text" id="sid" autocomplete="off" spellcheck="false" placeholder="BC-0123" maxlength="7" inputmode="text"></div>
-      <div><label for="sid2">Type Study ID again</label><input type="text" id="sid2" autocomplete="off" spellcheck="false" placeholder="BC-0123" maxlength="7"></div>
+      <div><label for="sid">Study ID</label><input type="text" id="sid" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="type the 4 numbers, e.g. 0123" maxlength="7" inputmode="numeric" pattern="[0-9]*"></div>
+      <div><label for="sid2">Type Study ID again</label><input type="text" id="sid2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="type the 4 numbers again" maxlength="7" inputmode="numeric" pattern="[0-9]*"></div>
     </div>
-    <div id="sidMsg" class="hint"></div>
+    <div class="hint">"BC-" is filled in automatically. Just type the 4 numbers.</div><div id="sidMsg" class="hint"></div>
     <div id="have" hidden>
       <div class="hint" style="margin-top:10px">Already in this patient's folder:</div>
       <div class="chips" id="chips"></div>
@@ -447,14 +449,18 @@ $('#showSetup').onclick = () => copy(toSetupCode(cfg));
 
 /* ---------------- patient / document form ---------------- */
 $('#code').innerHTML = '<option value="">— choose —</option>' + DOCS.map(([c,n]) => `<option value="${c}">${c} — ${esc(n)}</option>`).join('');
-function fmtSid(v){ v = v.toUpperCase().replace(/[^0-9]/g,'').slice(0,4); return v ? 'BC-' + v : ''; }
-['#sid','#sid2'].forEach(s => $(s).addEventListener('input', e => { const pos = e.target.value; e.target.value = fmtSid(pos); checkSid(); }));
+function fmtSid(v){ const d = v.toUpperCase().replace(/^BC-?/,'').replace(/[^0-9]/g,'').slice(0,4); return 'BC-' + d; }
+['#sid','#sid2'].forEach(s => {
+  $(s).addEventListener('input', e => { e.target.value = fmtSid(e.target.value); checkSid(); });
+  $(s).addEventListener('focus', e => { if(!e.target.value) e.target.value = 'BC-'; });   // BC- is filled in for you
+  $(s).addEventListener('blur', e => { if(e.target.value === 'BC-') e.target.value = ''; });
+});
 let sidChecked = '';
 function sidOK(){ const a=$('#sid').value, b=$('#sid2').value; return SID_RE.test(a) && a===b; }
 async function checkSid(){
   const a=$('#sid').value, b=$('#sid2').value, m=$('#sidMsg');
-  $('#sid').className = SID_RE.test(a) ? 'good' : (a.length ? 'bad' : '');
-  $('#sid2').className = b.length ? (a===b && SID_RE.test(b) ? 'good' : 'bad') : '';
+  $('#sid').className = SID_RE.test(a) ? 'good' : (a.length > 3 && document.activeElement !== $('#sid') ? 'bad' : '');
+  $('#sid2').className = b.length === 7 ? (a===b ? 'good' : 'bad') : '';
   if(b.length===7 && a!==b){ m.innerHTML = '<span style="color:var(--err)">The two Study IDs do not match.</span>'; }
   else if(sidOK()){ m.textContent = '✓ Study ID confirmed'; if(sidChecked!==a){ sidChecked=a; refreshHave(); } }
   else { m.textContent=''; $('#have').hidden = true; sidChecked=''; }
